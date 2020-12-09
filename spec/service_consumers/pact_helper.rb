@@ -73,6 +73,7 @@ Pact.service_provider 'VA.gov API' do
     # When using WIP pacts feature,
     # it's best to turn on pending pacts so that any WIP pact failures
     # don't cause the build to fail
+    # can we use this with when invoking circle workflow via webhook?
     enable_pending true
 
     # When verifying pacts, the verification task can be configured
