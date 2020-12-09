@@ -79,7 +79,7 @@ Pact.service_provider 'VA.gov API' do
     # When verifying pacts, the verification task can be configured
     # to include all "work in progress" pacts (as well as the pacts that you
     # specify by tag, like master or prod).
-    include_wip_pacts_since '2020-09-01'
+    include_wip_pacts_since '2020-12-10'
 
     # Optionally specify the consumer version tags for the pacts you want to verify
     # This will verify the latest pact with the tag `master`
