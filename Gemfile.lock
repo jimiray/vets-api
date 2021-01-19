@@ -89,6 +89,7 @@ PATH
     health_quest (0.1.0)
     mobile (0.1.0)
     openid_auth (0.0.1)
+    tester (0.1.0)
     va_forms (0.0.1)
       faraday
       nokogiri
@@ -1018,6 +1019,7 @@ DEPENDENCIES
   strong_migrations
   super_diff
   swagger-blocks
+  tester!
   timecop
   typhoeus
   tzinfo-data

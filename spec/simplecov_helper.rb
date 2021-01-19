@@ -32,6 +32,8 @@ class SimpleCovHelper
       add_filter 'version.rb'
 
       # Modules
+	add_group 'Tester',
+                       'modules/tester/'
       add_group 'Policies', 'app/policies'
       add_group 'Serializers', 'app/serializers'
       add_group 'Services', 'app/services'
