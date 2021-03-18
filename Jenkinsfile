@@ -53,7 +53,7 @@ pipeline {
                               change_types: ['modified', 'added']).join(' ')
           } catch(IOException e) {
             echo "WARNING: Unable to fetch changed PR files from Github!"
-            echo "${e}"           
+            echo "${e}"
           }
         }
         sh """env=$RAILS_ENV make files='${files_to_lint}' lint"""
@@ -146,6 +146,7 @@ pipeline {
       when { branch staging_branch }
 
       steps {
+        sh 'printenv | sort'
         build job: 'deploys/vets-api-server-vagov-staging', parameters: [
           booleanParam(name: 'notify_slack', value: true),
           booleanParam(name: 'migration_status', value: true),
