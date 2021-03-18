@@ -147,6 +147,7 @@ pipeline {
 
       steps {
         sh 'printenv | sort'
+        echo sh(script: 'env|sort', returnStdout: true)
         build job: 'deploys/vets-api-server-vagov-staging', parameters: [
           booleanParam(name: 'notify_slack', value: true),
           booleanParam(name: 'migration_status', value: true),
