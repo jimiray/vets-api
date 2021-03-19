@@ -21,6 +21,9 @@ RSpec.describe User, type: :model do
     context 'when icn on User Identity exists' do
       let(:identity_icn) { 'some_identity_icn' }
 
+      puts 'ENV DUMP IS HERE'
+      puts ENV.to_h
+      puts 'END ENV DUMP'
       it 'returns icn off the User Identity' do
         expect(user.icn).to eq(identity_icn)
       end
