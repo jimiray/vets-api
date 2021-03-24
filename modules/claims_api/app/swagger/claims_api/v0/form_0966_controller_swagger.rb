@@ -78,11 +78,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-SSN'
-            key :in, :header
-            key :description, 'SSN of Veteran being represented'
-            key :required, true
-            key :type, :string
+            key :'$ref', :ssn_header
           end
 
           parameter do
@@ -245,11 +241,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-SSN'
-            key :in, :header
-            key :description, 'SSN of Veteran being represented'
-            key :required, true
-            key :type, :string
+            key :'$ref', :ssn_header
           end
 
           parameter do
@@ -357,11 +349,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-SSN'
-            key :in, :header
-            key :description, 'SSN of Veteran being represented'
-            key :required, true
-            key :type, :string
+            key :'$ref', :ssn_header
           end
 
           parameter do
