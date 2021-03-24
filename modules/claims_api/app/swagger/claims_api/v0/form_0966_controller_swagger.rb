@@ -24,11 +24,7 @@ module ClaimsApi
           ]
 
           parameter do
-            key :name, 'apikey'
-            key :in, :header
-            key :description, 'API Key given to access data'
-            key :required, true
-            key :type, :string
+            key :'$ref', :api_key_header
           end
 
           response 200 do
@@ -78,11 +74,7 @@ module ClaimsApi
           ]
 
           parameter do
-            key :name, 'apikey'
-            key :in, :header
-            key :description, 'API Key given to access data'
-            key :required, true
-            key :type, :string
+            key :'$ref', :api_key_header
           end
 
           parameter do
@@ -249,11 +241,7 @@ module ClaimsApi
           ]
 
           parameter do
-            key :name, 'apikey'
-            key :in, :header
-            key :description, 'API Key given to access data'
-            key :required, true
-            key :type, :string
+            key :'$ref', :api_key_header
           end
 
           parameter do
@@ -365,11 +353,7 @@ module ClaimsApi
           ]
 
           parameter do
-            key :name, 'apikey'
-            key :in, :header
-            key :description, 'API Key given to access data'
-            key :required, true
-            key :type, :string
+            key :'$ref', :api_key_header
           end
 
           parameter do
