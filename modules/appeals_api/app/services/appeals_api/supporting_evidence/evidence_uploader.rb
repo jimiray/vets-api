@@ -16,6 +16,9 @@ module AppealsApi
         generate_evidence_submission!
         uploader.store!(document)
         update_submission!
+        kickoff_vbms_upload_job
+
+        submission
       end
 
       private
@@ -32,11 +35,15 @@ module AppealsApi
 
       def update_submission!
         @submission.update!(
-          status: 'submitted',
+          status: 'processing',
           file_data: {
             filename: uploader.filename
           }
         )
+      end
+
+      def kickoff_vbms_upload_job
+        AppealsApi::VBMSUploadWorker.perform_async(submission.id)
       end
 
       def valid_type?

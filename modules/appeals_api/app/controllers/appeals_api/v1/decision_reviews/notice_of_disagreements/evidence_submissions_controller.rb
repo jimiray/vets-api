@@ -21,10 +21,32 @@ module AppealsApi::V1
           status, error = AppealsApi::FileValidator.new(params[:document]).call
 
           if status == :ok
-            render json: { document: params[:document], uuid: params[:uuid] }
+            appeal = AppealsApi::NoticeOfDisagreement.find(params[:uuid])
+            submission = AppealsApi::SupportingEvidence::EvidenceUploader.new(
+              appeal,
+              params[:document],
+              type: :notice_of_disagreement
+            ).process!
+
+            render json: { message: status_message[submission.status], document: params[:document],
+                           uuid: params[:uuid] }
           else
-            render json: { errors: [error] }, status: 422
+            render json: { errors: [error] }, status: :unprocessable_entity
           end
+        end
+
+        private
+
+        def status_message
+          # TODO: i18n?
+          {
+            's3_failed' => 'The file could not be retrieved from s3',
+            's3_error' => 'The file could not be uploaded to s3',
+            'vbms_error' => '',
+            'vbms_failed' => '',
+            'submitted' => 'The document has been successfully submitted!',
+            'processing' => 'The document has been accepted by our system and is processing.'
+          }
         end
       end
     end

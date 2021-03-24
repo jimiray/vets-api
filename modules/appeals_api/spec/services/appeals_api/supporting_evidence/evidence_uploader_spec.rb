@@ -29,9 +29,9 @@ module AppealsApi
           expect(double).to have_received(:store!)
         end
 
-        it 'marks the created submission \'submitted\'' do
+        it 'marks the created submission \'processing\'' do
           uploader.process!
-          expect(appeal.evidence_submissions.first.status).to eq('submitted')
+          expect(appeal.evidence_submissions.first.status).to eq('processing')
         end
       end
     end
