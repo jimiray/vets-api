@@ -86,11 +86,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-Last-Name'
-            key :in, :header
-            key :description, 'Last Name of Veteran being represented'
-            key :required, true
-            key :type, :string
+            key :'$ref', :last_name_header
           end
 
           parameter do
@@ -245,11 +241,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-Last-Name'
-            key :in, :header
-            key :description, 'Last Name of Veteran being represented'
-            key :required, true
-            key :type, :string
+            key :'$ref', :last_name_header
           end
 
           parameter do
@@ -349,11 +341,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-Last-Name'
-            key :in, :header
-            key :description, 'Last Name of Veteran being represented'
-            key :required, true
-            key :type, :string
+            key :'$ref', :last_name_header
           end
 
           parameter do
