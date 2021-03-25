@@ -14,6 +14,7 @@ module ClaimsApi
           ClaimsApi::Forms::Form0966ResponseSwagger,
           ClaimsApi::Forms::Form2122ResponseSwagger,
           ClaimsApi::Headers::ApiKeySwagger,
+          ClaimsApi::Headers::BirthDateSwagger,
           ClaimsApi::Headers::FirstNameSwagger,
           ClaimsApi::Headers::LastNameSwagger,
           ClaimsApi::Headers::SsnSwagger,
