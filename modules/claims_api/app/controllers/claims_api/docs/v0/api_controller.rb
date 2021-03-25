@@ -17,6 +17,7 @@ module ClaimsApi
           ClaimsApi::Headers::BirthDateSwagger,
           ClaimsApi::Headers::FirstNameSwagger,
           ClaimsApi::Headers::LastNameSwagger,
+          ClaimsApi::Headers::LoaSwagger,
           ClaimsApi::Headers::SsnSwagger,
           ClaimsApi::Common::Authorization::NotAuthorizedSwagger,
           ClaimsApi::Common::Authorization::ForbiddenSwagger,
