@@ -94,12 +94,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-LOA'
-            key :in, :header
-            key :description, 'The level of assurance of the user making the request'
-            key :example, '3'
-            key :required, true
-            key :type, :string
+            key :'$ref', :loa_header
           end
 
           request_body do
@@ -245,12 +240,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-LOA'
-            key :in, :header
-            key :description, 'The level of assurance of the user making the request'
-            key :example, '3'
-            key :required, true
-            key :type, :string
+            key :'$ref', :loa_header
           end
 
           parameter do
@@ -341,12 +331,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-LOA'
-            key :in, :header
-            key :description, 'The level of assurance of the user making the request'
-            key :example, '3'
-            key :required, true
-            key :type, :string
+            key :'$ref', :loa_header
           end
 
           request_body do
