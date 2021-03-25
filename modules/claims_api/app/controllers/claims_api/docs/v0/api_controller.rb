@@ -15,6 +15,7 @@ module ClaimsApi
           ClaimsApi::Forms::Form2122ResponseSwagger,
           ClaimsApi::Headers::ApiKeySwagger,
           ClaimsApi::Headers::FirstNameSwagger,
+          ClaimsApi::Headers::LastNameSwagger,
           ClaimsApi::Headers::SsnSwagger,
           ClaimsApi::Common::Authorization::NotAuthorizedSwagger,
           ClaimsApi::Common::Authorization::ForbiddenSwagger,
