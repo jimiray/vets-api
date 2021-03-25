@@ -47,12 +47,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-Birth-Date'
-            key :in, :header
-            key :description, 'Date of Birth of Veteran being represented, in iso8601 format'
-            key :example, '1954-12-15'
-            key :required, true
-            key :type, :string
+            key :'$ref', :birth_date_header
           end
 
           parameter do
@@ -146,12 +141,7 @@ module ClaimsApi
           end
 
           parameter do
-            key :name, 'X-VA-Birth-Date'
-            key :in, :header
-            key :description, 'Date of Birth of Veteran being represented, in iso8601 format'
-            key :example, '1954-12-15'
-            key :required, true
-            key :type, :string
+            key :'$ref', :birth_date_header
           end
 
           parameter do
