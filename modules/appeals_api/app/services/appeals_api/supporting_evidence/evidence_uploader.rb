@@ -5,10 +5,11 @@ module AppealsApi
     class EvidenceUploader
       VALID_EVIDENCE_TYPES = %i[notice_of_disagreement].freeze
 
-      def initialize(appeal, document, type:)
+      def initialize(appeal, document, type:, doc_type: '10')
         @appeal = appeal
         @document = document
         @type = type
+        @doc_type = doc_type
         raise ArgumentError, 'invalid type' unless valid_type?
       end
 
@@ -23,7 +24,7 @@ module AppealsApi
 
       private
 
-      attr_accessor :submission, :document, :appeal, :type
+      attr_accessor :submission, :document, :appeal, :type, :doc_type
 
       def generate_evidence_submission!
         @submission = appeal.evidence_submissions.create!
@@ -37,7 +38,8 @@ module AppealsApi
         @submission.update!(
           status: 'processing',
           file_data: {
-            filename: uploader.filename
+            filename: uploader.filename,
+            doc_type: doc_type
           }
         )
       end

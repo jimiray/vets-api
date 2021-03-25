@@ -73,10 +73,7 @@ module AppealsApi
       end
 
       def doc_type
-        {
-          notice_of_disagreement: '',
-          supplemental_claim: ''
-        }[submission_type]
+        submission.file_data["doc_type"] || '10' #10 is 'UNKNOWN'
       end
 
       def get_filepath

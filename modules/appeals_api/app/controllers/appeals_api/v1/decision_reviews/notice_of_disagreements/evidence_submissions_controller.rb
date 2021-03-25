@@ -25,7 +25,8 @@ module AppealsApi::V1
             submission = AppealsApi::SupportingEvidence::EvidenceUploader.new(
               appeal,
               params[:document],
-              type: :notice_of_disagreement
+              type: :notice_of_disagreement,
+              doc_type: params[:doc_type],
             ).process!
 
             render json: { message: status_message[submission.status], document: params[:document],

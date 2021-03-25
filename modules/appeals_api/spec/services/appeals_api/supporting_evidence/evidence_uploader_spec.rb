@@ -33,6 +33,11 @@ module AppealsApi
           uploader.process!
           expect(appeal.evidence_submissions.first.status).to eq('processing')
         end
+
+        it 'stores the doctype' do
+          uploader.process!
+          expect(appeal.evidence_submissions.first.file_data["doc_type"]).to eq('10')
+        end
       end
     end
   end
