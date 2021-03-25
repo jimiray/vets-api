@@ -32,6 +32,7 @@ module AppealsApi
           subject: doc_type,
           new_mail: true
         )
+
         client.send_request(vbms_request)
       end
 
