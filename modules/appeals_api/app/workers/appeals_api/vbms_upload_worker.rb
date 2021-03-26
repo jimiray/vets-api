@@ -16,9 +16,9 @@ module AppealsApi
       begin
         SupportingEvidence::VBMSConnectUploader.new(submission).process!
       rescue VBMS::Unknown
-        process_vbms_error
+        process_vbms_error(submission)
       rescue Errno::ENOENT
-        process_file_not_found
+        process_file_not_found(submission)
       end
     end
 
@@ -32,12 +32,12 @@ module AppealsApi
       AppealsApi::SidekiqRetryNotifier.notify!(params)
     end
 
-    def process_vbms_error
+    def process_vbms_error(submission)
       submission.update!(status: 'failed')
       raise
     end
 
-    def process_file_not_found
+    def process_file_not_found(submission)
       submission.update!(status: 'error')
       raise
     end
