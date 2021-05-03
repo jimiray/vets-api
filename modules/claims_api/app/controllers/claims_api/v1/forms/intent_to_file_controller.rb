@@ -12,7 +12,7 @@ module ClaimsApi
         before_action except: %i[schema] do
           permit_scopes %w[claim.write]
         end
-        before_action :verify_power_of_attorney_using_bgs_service, if: :header_request?
+        before_action :verify_power_of_attorney!, if: :header_request?
 
         FORM_NUMBER = '0966'
         ITF_TYPES = %w[compensation pension burial].freeze
@@ -27,15 +27,7 @@ module ClaimsApi
           render json: bgs_response,
                  serializer: ClaimsApi::IntentToFileSerializer
         rescue Savon::SOAPFault => e
-          error = {
-            errors: [
-              {
-                status: 422,
-                details: e.message&.split('>')&.last
-              }
-            ]
-          }
-          render json: error, status: :unprocessable_entity
+          raise ::Common::Exceptions::UnprocessableEntity.new(detail: e.message&.split('>')&.last)
         end
 
         # GET current intent to file status based on type.
@@ -54,7 +46,7 @@ module ClaimsApi
                          bgs_response
                        end
           message = "No Intent to file is on record for #{target_veteran_name} of type #{active_param}"
-          raise ::Common::Exceptions::RecordNotFound, 'active', detail: message if bgs_active.blank?
+          raise ::Common::Exceptions::ResourceNotFound.new(detail: message) if bgs_active.blank?
 
           render json: bgs_active, serializer: ClaimsApi::IntentToFileSerializer
         end

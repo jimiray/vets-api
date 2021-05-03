@@ -23,10 +23,11 @@ module ClaimsApi
       primary_identifier[:id] = id if id.present?
       primary_identifier[:header_md5] = header_md5 if header_md5.present?
       primary_identifier[:md5] = md5 if md5.present?
-      poa = ClaimsApi::PowerOfAttorney.find_by(primary_identifier)
-      return nil if poa.present? && poa.source_data['name'] != source_name
+      poas = ClaimsApi::PowerOfAttorney.where(primary_identifier).order(:created_at)
+      poas = poas.select { |poa| poa.source_data['name'] == source_name }
+      return nil if poas.blank?
 
-      poa
+      poas.last
     end
 
     def sign_pdf
@@ -110,6 +111,7 @@ module ClaimsApi
                                     'va_eauth_service_transaction_id',
                                     'va_eauth_issueinstant',
                                     'Authorization')
+      headers['status'] = status
       self.header_md5 = Digest::MD5.hexdigest headers.to_json
       self.md5 = Digest::MD5.hexdigest form_data.merge(headers).to_json
     end
@@ -123,7 +125,9 @@ module ClaimsApi
     end
 
     def external_uid
-      source_data.present? ? source_data['icn'] : Settings.bgs.external_uid
+      return source_data['icn'] if source_data.present? && source_data['icn'].present?
+
+      Settings.bgs.external_uid
     end
 
     def signature_image_paths

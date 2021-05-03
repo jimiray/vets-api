@@ -22,18 +22,21 @@ namespace :covid_vaccine do
     end
   end
 
-  # desc 'Update state of records in batch to pending'
-  # task :set_pending_state, [:batch_id] => [:environment] do |_, args|
-  #   batch_id = args[:batch_id]
-  #   CovidVaccine::V0::EnrollmentProcessor.set_pending_state(batch_id)
-  #   puts "Updated state to enrollment_pending for batch id #{batch_id}"
-  # end
+  desc 'Update state of records in batch to pending'
+  task :set_pending_state, [:batch_id] => [:environment] do |_, args|
+    raise 'No batch_id provided' unless args[:batch_id]
+
+    batch_id = args[:batch_id]
+    CovidVaccine::V0::EnrollmentProcessor.update_state_to_pending(batch_id)
+    puts "Updated state to enrollment_pending for batch id #{batch_id}"
+  end
 
   desc 'Perform enrollment SFTP upload for max (count) records'
   task :perform_enrollment_upload, [:count] => [:environment] do |_, _args|
-    processor = CovidVaccine::V0::EnrollmentProcessor.new
+    batch_id = CovidVaccine::V0::EnrollmentProcessor.batch_records!
+    processor = CovidVaccine::V0::EnrollmentProcessor.new(batch_id)
     processor.process_and_upload!
-    puts "Uploaded batch file for batch id #{processor.batch_id} successfully"
+    puts "Uploaded batch file for batch id #{batch_id} successfully"
   end
 
   desc 'Write mapped facility IDs to record. Short-lived task to handle input anomaly'
@@ -54,5 +57,21 @@ namespace :covid_vaccine do
       count += 1
     end
     puts "Updated mapped facility info for #{count} records"
+  end
+
+  desc 'Write mapped facility IDs to record for a specified batch'
+  task :map_facility_ids_for_batch, [:batch_id] => [:environment] do |_, args|
+    raise 'No batch_id provided' unless args[:batch_id]
+
+    batch_id = args[:batch_id]
+    count = 0
+    CovidVaccine::V0::ExpandedRegistrationSubmission.where(batch_id: batch_id).find_each do |submission|
+      resolver = CovidVaccine::V0::FacilityResolver.new
+      mapped_facility = resolver.resolve(submission)
+      submission.eligibility_info = { preferred_facility: mapped_facility }
+      submission.save!
+      count += 1
+    end
+    puts "Updated mapped facility info for #{count} records in batch #{batch_id}"
   end
 end

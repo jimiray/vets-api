@@ -21,6 +21,8 @@ module HealthQuest
     #   @return [FHIR::Patient]
     # @!attribute questionnaires
     #   @return [Array]
+    # @!attribute questionnaire_response
+    #   @return [HealthQuest::QuestionnaireResponse]
     # @!attribute questionnaire_responses
     #   @return [Array]
     # @!attribute save_in_progress
@@ -51,6 +53,7 @@ module HealthQuest
       HEALTH_CARE_FORM_PREFIX = 'HC-QSTNR'
       USE_CONTEXT_DELIMITER = ','
       ID_MATCHER = /([I2\-a-zA-Z0-9]+)\z/i.freeze
+      SUCCESS_STATUS = '201'
 
       attr_reader :lighthouse_appointments,
                   :locations,
@@ -59,6 +62,7 @@ module HealthQuest
                   :aggregated_data,
                   :patient,
                   :questionnaires,
+                  :questionnaire_response,
                   :questionnaire_responses,
                   :request_threads,
                   :save_in_progress,
@@ -87,6 +91,7 @@ module HealthQuest
       def initialize(user)
         @aggregated_data = default_response
         @user = user
+        @questionnaire_response = HealthQuest::QuestionnaireResponse.new
         @lighthouse_appointment_service = HealthQuest::Resource::Factory.manufacture(appointment_type)
         @location_service = HealthQuest::Resource::Factory.manufacture(location_type)
         @organization_service = HealthQuest::Resource::Factory.manufacture(organization_type)
@@ -111,19 +116,38 @@ module HealthQuest
         return default_response if lighthouse_appointments.blank?
 
         concurrent_pgd_requests
+        @facilities = get_facilities
         return default_response if patient.blank? || questionnaires.blank?
 
         compose
       end
 
       ##
-      # Create a QuestionnaireResponse resource
+      # Create a QuestionnaireResponse resource in the Lighthouse PGD.
+      # If the resource creation is successful, then store an encrypted snapshot of
+      # the User's demographics and the submitted answers to the Questionnaire so
+      # that we can construct a PDF for the signed in Patient.
       #
       # @param data [Hash] questionnaire answers and appointment data hash.
       # @return [FHIR::ClientReply] an instance of ClientReply
       #
       def create_questionnaire_response(data)
-        questionnaire_response_service.create(data.to_h.with_indifferent_access)
+        attrs = data.to_h.with_indifferent_access
+        response = questionnaire_response_service.create(attrs)
+
+        response.tap do |resp|
+          if resp.response[:code] == SUCCESS_STATUS
+            questionnaire_response.tap do |qr|
+              qr.user_uuid = user.uuid
+              qr.appointment_id = attrs.dig(:appointment, :id)
+              qr.questionnaire_response_id = resp.resource.id
+              qr.user = user
+              qr.questionnaire_response_data = data
+
+              qr.save
+            end
+          end
+        end
       end
 
       ##
@@ -135,7 +159,17 @@ module HealthQuest
       # @return [String]
       #
       def generate_questionnaire_response_pdf(questionnaire_response_id)
-        questionnaire_response_id
+        snapshot = HealthQuest::QuestionnaireResponse
+                   .where(user_uuid: user.uuid, questionnaire_response_id: questionnaire_response_id.to_s)
+                   .first
+
+        appointment = lighthouse_appointment_service.get(snapshot.appointment_id)
+        location = location_service.get(appointment.resource.participant.first.actor.reference.match(ID_MATCHER)[1])
+        org = organization_service.get(location.resource.managingOrganization.reference.match(ID_MATCHER)[1])
+
+        HealthQuest::QuestionnaireManager::QuestionnaireResponseReport
+          .manufacture(questionnaire_response: snapshot, appointment: appointment, location: location, org: org)
+          .render
       end
 
       ##
@@ -153,7 +187,6 @@ module HealthQuest
         # rubocop:disable ThreadSafety/NewThread
         request_threads << Thread.new { @patient = get_patient.resource }
         request_threads << Thread.new { @organizations = get_organizations }
-        request_threads << Thread.new { @facilities = get_facilities }
         request_threads << Thread.new { @questionnaires = get_questionnaires.resource&.entry }
         request_threads << Thread.new { @questionnaire_responses = get_questionnaire_responses.resource&.entry }
         request_threads << Thread.new { @save_in_progress = get_save_in_progress }
@@ -258,7 +291,7 @@ module HealthQuest
       # @return [Array]
       #
       def get_facilities
-        list = locations.map { |loc| loc.resource.identifier.first.value }
+        list = organizations.map { |org| org.resource.identifier.last.value }
         facilities_ids = list.join(',')
 
         facilities_request.get(facilities_ids)
