@@ -60,10 +60,10 @@ RSpec.describe 'claims and appeals overview', type: :request do
       let(:params) do
         { useCache: false,
           startDate: '2017-05-01T07:00:00.000Z',
-          page: { number: 4, size: 10 } }
+          page: { number: 2, size: 12 } }
       end
 
-      it 'and the results are for page 4 of 36 items @ 10 items/page' do
+      it 'and the results are for page 2 of a 12 item pages which only has 10 entries' do
         VCR.use_cassette('claims/claims') do
           VCR.use_cassette('appeals/appeals') do
             get '/mobile/v0/claims-and-appeals-overview', headers: iam_headers, params: params
@@ -71,7 +71,7 @@ RSpec.describe 'claims and appeals overview', type: :request do
             # check a couple entries to make sure the data is correct
             parsed_response_contents = response.parsed_body.dig('data')
             expect(response.parsed_body.dig('links', 'next')).to be(nil)
-            expect(parsed_response_contents.length).to eq(6)
+            expect(parsed_response_contents.length).to eq(10)
             expect(response.body).to match_json_schema('claims_and_appeals_overview_response')
           end
         end
