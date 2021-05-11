@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_04_08_191850) do
+ActiveRecord::Schema.define(version: 2021_05_07_122840) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gin"
+  enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -55,17 +56,34 @@ ActiveRecord::Schema.define(version: 2021_04_08_191850) do
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
-  create_table "appeal_submissions", force: :cascade do |t|
-    t.string "user_uuid"
-    t.string "submitted_appeal_uuid"
-    t.string "type_of_appeal"
-    t.string "board_review_otpion"
+  create_table "appeal_submission_uploads", force: :cascade do |t|
+    t.string "decision_review_evidence_attachment_guid"
+    t.string "appeal_submission_id"
+    t.string "lighthouse_upload_id"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
   end
 
+  create_table "appeal_submissions", force: :cascade do |t|
+    t.string "user_uuid"
+    t.string "submitted_appeal_uuid"
+    t.string "type_of_appeal"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.string "board_review_option"
+    t.string "encrypted_upload_metadata"
+    t.string "encrypted_upload_metadata_iv"
+  end
+
+  create_table "appeals_api_event_subscriptions", force: :cascade do |t|
+    t.string "topic"
+    t.string "callback"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["topic", "callback"], name: "index_appeals_api_event_subscriptions_on_topic_and_callback"
+  end
+
   create_table "appeals_api_evidence_submissions", force: :cascade do |t|
-    t.string "status", default: "pending", null: false
     t.string "supportable_type"
     t.string "supportable_id"
     t.datetime "created_at", precision: 6, null: false
@@ -74,8 +92,12 @@ ActiveRecord::Schema.define(version: 2021_04_08_191850) do
     t.string "encrypted_file_data_iv"
     t.string "source"
     t.string "code"
-    t.string "details"
+    t.string "detail"
+    t.uuid "guid", null: false
+    t.integer "upload_submission_id", null: false
+    t.index ["guid"], name: "index_appeals_api_evidence_submissions_on_guid"
     t.index ["supportable_type", "supportable_id"], name: "evidence_submission_supportable_id_type_index"
+    t.index ["upload_submission_id"], name: "index_appeals_api_evidence_submissions_on_upload_submission_id", unique: true
   end
 
   create_table "appeals_api_higher_level_reviews", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -102,6 +124,18 @@ ActiveRecord::Schema.define(version: 2021_04_08_191850) do
     t.string "code"
     t.string "detail"
     t.string "source"
+    t.string "board_review_option"
+  end
+
+  create_table "appeals_api_status_updates", force: :cascade do |t|
+    t.string "from"
+    t.string "to"
+    t.string "statusable_type"
+    t.string "statusable_id"
+    t.datetime "status_update_time"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["statusable_type", "statusable_id"], name: "status_update_id_type_index"
   end
 
   create_table "async_transactions", id: :serial, force: :cascade do |t|
@@ -334,6 +368,7 @@ ActiveRecord::Schema.define(version: 2021_04_08_191850) do
     t.boolean "transfer_of_entitlement", default: false, null: false
     t.boolean "chapter1607", default: false, null: false
     t.boolean "vettec", default: false
+    t.boolean "vrrap", default: false, null: false
     t.index ["created_at"], name: "index_education_benefits_submissions_on_created_at"
     t.index ["education_benefits_claim_id"], name: "index_education_benefits_claim_id", unique: true
     t.index ["region", "created_at", "form_type"], name: "index_edu_benefits_subs_ytd"
@@ -570,6 +605,17 @@ ActiveRecord::Schema.define(version: 2021_04_08_191850) do
     t.index ["error_class"], name: "index_personal_information_logs_on_error_class"
   end
 
+  create_table "pghero_query_stats", force: :cascade do |t|
+    t.text "database"
+    t.text "user"
+    t.text "query"
+    t.bigint "query_hash"
+    t.float "total_time"
+    t.bigint "calls"
+    t.datetime "captured_at"
+    t.index ["database", "captured_at"], name: "index_pghero_query_stats_on_database_and_captured_at"
+  end
+
   create_table "preference_choices", id: :serial, force: :cascade do |t|
     t.string "code"
     t.string "description"
@@ -727,6 +773,17 @@ ActiveRecord::Schema.define(version: 2021_04_08_191850) do
     t.jsonb "va_form_administration"
     t.integer "row_id"
     t.index ["valid_pdf"], name: "index_va_forms_forms_on_valid_pdf"
+  end
+
+  create_table "vba_documents_git_items", force: :cascade do |t|
+    t.string "url", null: false
+    t.jsonb "git_item"
+    t.boolean "notified", default: false
+    t.string "label"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["notified", "label"], name: "index_vba_documents_git_items_on_notified_and_label"
+    t.index ["url"], name: "index_vba_documents_git_items_on_url", unique: true
   end
 
   create_table "vba_documents_upload_submissions", id: :serial, force: :cascade do |t|

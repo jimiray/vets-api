@@ -29,14 +29,14 @@ module Mobile
           claim = claims_scope.find_by(evss_id: id)
           raise Common::Exceptions::RecordNotFound, id unless claim
 
-          raw_claim = claims_service.find_claim_by_id(claim.evss_id).body.fetch('claim', {})
+          raw_claim = claims_service.find_claim_with_docs_by_id(claim.evss_id).body.fetch('claim', {})
           claim.update(data: raw_claim)
           EVSSClaimDetailSerializer.new(claim)
         end
 
         def get_appeal(id)
           appeals = appeals_service.get_appeals(@user).body['data']
-          appeal = appeals.select { |entry| entry.dig('id') == id }[0]
+          appeal = appeals.filter { |entry| entry.dig('id') == id }[0]
           raise Common::Exceptions::RecordNotFound, id unless appeal
 
           serializable_resource = OpenStruct.new(appeal['attributes'])

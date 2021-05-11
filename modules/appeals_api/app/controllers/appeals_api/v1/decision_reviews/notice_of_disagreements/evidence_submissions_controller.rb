@@ -4,47 +4,68 @@ module AppealsApi::V1
   module DecisionReviews
     module NoticeOfDisagreements
       class EvidenceSubmissionsController < AppealsApi::ApplicationController
+        include AppealsApi::StatusSimulation
+        include SentryLogging
+
+        class EvidenceSubmissionRequestValidatorError < StandardError; end
+
         skip_before_action :authenticate
-        before_action :set_submission_attributes, if: -> { params[:nod_id] }
+        before_action :nod_id_present?, only: :create
 
         def create
-          submission = AppealsApi::EvidenceSubmission.create(@submission_attributes)
-          signed_url = submission.get_location
+          status, error = AppealsApi::EvidenceSubmissionRequestValidator.new(params[:nod_id],
+                                                                             request.headers['X-VA-SSN']).call
 
-          render json: { data:
-                          {
-                            attributes:
-                              {
-                                status: submission.status,
-                                id: submission.id,
-                                appeal_id: submission.supportable_id,
-                                appeal_type: submission.supportable_type
-                              },
-                            location: signed_url
-                          } }
+          if status == :ok
+            upload = VBADocuments::UploadSubmission.create! consumer_name: 'appeals_api_nod_evidence_submission'
+            submission = AppealsApi::EvidenceSubmission.create! submission_attributes.merge(upload_submission: upload)
+
+            render json: submission,
+                   serializer: AppealsApi::EvidenceSubmissionSerializer,
+                   key_transform: :camel_lower,
+                   render_location: true
+          else
+            log_error(error)
+            render json: { errors: [error] }, status: error[:title].to_sym
+          end
         end
 
         def show
-          submissions = AppealsApi::EvidenceSubmission.where(
-            supportable_id: params[:id],
-            supportable_type: 'AppealsApi::NoticeOfDisagreement'
-          )
+          submission = AppealsApi::EvidenceSubmission.find_by(guid: params[:id])
+          raise Common::Exceptions::RecordNotFound, params[:id] unless submission
 
-          serialized = AppealsApi::EvidenceSubmissionSerializer.new(submissions)
+          submission = with_status_simulation(submission) if status_requested_and_allowed?
 
-          render json: serialized.serializable_hash
+          render json: submission,
+                 serializer: AppealsApi::EvidenceSubmissionSerializer,
+                 key_transform: :camel_lower,
+                 render_location: false
         end
 
         private
 
-        def set_submission_attributes
-          @appeal ||= AppealsApi::NoticeOfDisagreement.find_by(id: params[:nod_id])
-          raise Common::Exceptions::RecordNotFound, params[:nod_id] unless @appeal
+        def nod_id_present?
+          nod_id_missing_error unless params[:nod_id]
+        end
 
-          @submission_attributes ||= {
+        def nod_id_missing_error
+          error = { title: 'bad_request', detail: I18n.t('appeals_api.errors.missing_nod_id') }
+          log_error(error)
+
+          render json: { errors: [error] }, status: :bad_request
+        end
+
+        def submission_attributes
+          {
+            source: request.headers['X-Consumer-Username'],
             supportable_id: params[:nod_id],
-            supportable_type: 'NoticeOfDisagreement'
+            supportable_type: 'AppealsApi::NoticeOfDisagreement'
           }
+        end
+
+        def log_error(error_detail)
+          log_exception_to_sentry(EvidenceSubmissionRequestValidatorError.new(error_detail), {}, {}, :warn)
+          error_detail
         end
       end
     end
