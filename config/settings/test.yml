@@ -60,12 +60,16 @@ account:
 directory:
   url: http://example.com/services/apps/v0/
   apikey: <fake_api_key>
-  staging_flag: ~
 
 search:
   access_key: TESTKEY
   affiliate: va
   url: https://search.usa.gov/api/v2
+
+search_typeahead:
+  api_key: TEST_KEY
+  name: va
+  url: https://api.gsa.gov/technology/searchgov/v1
 
 search_click_tracking:
   access_key: TESTKEY

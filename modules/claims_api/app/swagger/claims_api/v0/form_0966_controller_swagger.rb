@@ -10,6 +10,7 @@ module ClaimsApi
 
       swagger_path '/forms/0966' do
         operation :get do
+          key :deprecated, true
           security do
             key :apikey, []
           end
@@ -334,6 +335,22 @@ module ClaimsApi
             end
           end
 
+          response 404 do
+            key :description, 'Resource not found'
+            content 'application/json' do
+              schema do
+                key :type, :object
+                key :required, [:errors]
+                property :errors do
+                  key :type, :array
+                  items do
+                    key :$ref, :NotFoundModel
+                  end
+                end
+              end
+            end
+          end
+
           response 422 do
             key :description, 'Unprocessable entity'
             content 'application/json' do
@@ -354,6 +371,7 @@ module ClaimsApi
 
       swagger_path '/forms/0966/validate' do
         operation :post do
+          key :deprecated, true
           security do
             key :apikey, []
           end

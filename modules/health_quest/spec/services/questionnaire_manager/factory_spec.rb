@@ -54,6 +54,7 @@ describe HealthQuest::QuestionnaireManager::Factory do
       expect(factory.respond_to?(:aggregated_data)).to eq(true)
       expect(factory.respond_to?(:patient)).to eq(true)
       expect(factory.respond_to?(:questionnaires)).to eq(true)
+      expect(factory.respond_to?(:questionnaire_response)).to eq(true)
       expect(factory.respond_to?(:save_in_progress)).to eq(true)
       expect(factory.respond_to?(:lighthouse_appointment_service)).to eq(true)
       expect(factory.respond_to?(:location_service)).to eq(true)
@@ -154,7 +155,7 @@ describe HealthQuest::QuestionnaireManager::Factory do
       [
         double('FHIR::Location',
                resource: double('FHIR::Bundle',
-                                identifier: [double('first', value: 'vha_442'), double('last', value: 'vha_442_3049')],
+                                identifier: [double('first', value: 'vha_442_3049')],
                                 to_hash: { id: 'I2-LABC' }))
       ]
     end
@@ -233,7 +234,7 @@ describe HealthQuest::QuestionnaireManager::Factory do
       [
         double('FHIR::Location',
                resource: double('FHIR::Bundle',
-                                identifier: [double('first', value: 'vha_442'), double('last', value: 'vha_442_3049')],
+                                identifier: [double('first', value: 'vha_442_3049')],
                                 managingOrganization: double('Reference', reference: '/O/I2-OABC'),
                                 to_hash: { id: 'I2-LABC' }))
       ]
@@ -256,12 +257,19 @@ describe HealthQuest::QuestionnaireManager::Factory do
       [
         double('FHIR::Location',
                resource: double('FHIR::Bundle',
-                                identifier: [double('first', value: 'vha_442'), double('last', value: 'vha_442_3049')]))
+                                identifier: [double('first', value: 'vha_442_3049')]))
+      ]
+    end
+    let(:organizations) do
+      [
+        double('FHIR::Organization',
+               resource: double('Resource',
+                                identifier: [double('last', value: 'vha_442')]))
       ]
     end
 
     before do
-      allow_any_instance_of(subject).to receive(:locations).and_return(locations)
+      allow_any_instance_of(subject).to receive(:organizations).and_return(organizations)
       allow_any_instance_of(HealthQuest::Facilities::Request).to receive(:get).with(anything).and_return(facilities)
     end
 
@@ -289,9 +297,14 @@ describe HealthQuest::QuestionnaireManager::Factory do
         item: []
       }
     end
+    let(:client_reply) do
+      double('FHIR::ClientReply', response: { code: '201' }, resource: double('Resource', id: '123abc'))
+    end
 
     it 'returns a ClientReply' do
       allow_any_instance_of(HealthQuest::Resource::Factory).to receive(:create).with(anything).and_return(client_reply)
+      allow_any_instance_of(HealthQuest::QuestionnaireResponse).to receive(:save)
+        .and_return(double('HealthQuest::QuestionnaireResponse'))
 
       expect(described_class.new(user).create_questionnaire_response(data)).to eq(client_reply)
     end
@@ -301,8 +314,11 @@ describe HealthQuest::QuestionnaireManager::Factory do
     let(:questionnaire_response_id) { '1bc-123-345' }
 
     it 'returns the id for now' do
+      allow_any_instance_of(described_class).to receive(:generate_questionnaire_response_pdf)
+        .with(questionnaire_response_id).and_return('')
+
       expect(described_class.new(user).generate_questionnaire_response_pdf(questionnaire_response_id))
-        .to eq(questionnaire_response_id)
+        .to be_a(String)
     end
   end
 end

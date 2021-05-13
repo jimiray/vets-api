@@ -133,8 +133,18 @@ module AppealsApi::V1
 
               property :boardReviewOption do
                 key :type, :string
-                key :example, 'evidence_submission'
-                key :description, 'Type of Board Review NOD being requested'
+                key :example, 'hearing'
+                key :enum, %w[direct_review evidence_submission hearing]
+
+                key :description, 'The option selected for the NOD submission'
+              end
+
+              property :hearingTypePreference do
+                key :type, :string
+                key :example, 'video_conference'
+                key :enum, %w[virtual_hearing video_conference central_office]
+                key :description,
+                    "The type of hearing selected, required if 'hearing' is selected for boardReviewOption"
               end
 
               property :timezone do
@@ -366,7 +376,7 @@ module AppealsApi::V1
               key :type, :string
               key :example, 'tinnitus'
               key :example, 'The type of issue being contested'
-              key :maxLength, 255
+              key :maxLength, 180
             end
 
             property :decisionDate do
@@ -375,7 +385,20 @@ module AppealsApi::V1
               key :example, 'The decision date for the contested issue'
               key :maxLength, 10
             end
+
+            property :disagreementReason do
+              key :type, :string
+              key :example, 'Effective Date'
+              key :example, 'The point of contention for this specific issue'
+              key :maxLength, 90
+            end
           end
+        end
+
+        schema :evidenceSubmissionStatus do
+          key :type, :string
+          key :enum, %w[processing s3_failed s3_error vbms_error vbms_failed submitted]
+          key :example, 'submitted'
         end
       end
     end

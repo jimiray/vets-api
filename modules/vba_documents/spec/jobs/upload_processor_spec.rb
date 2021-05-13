@@ -9,6 +9,8 @@ RSpec.describe VBADocuments::UploadProcessor, type: :job do
   let(:client_stub) { instance_double('CentralMail::Service') }
   let(:faraday_response) { instance_double('Faraday::Response') }
   let(:valid_metadata) { get_fixture('valid_metadata.json').read }
+  let(:missing_first) { get_fixture('missing_first_metadata.json').read }
+  let(:missing_last) { get_fixture('missing_last_metadata.json').read }
   let(:invalid_metadata_missing) { get_fixture('invalid_metadata_missing.json').read }
   let(:invalid_metadata_nonstring) { get_fixture('invalid_metadata_nonstring.json').read }
 
@@ -59,6 +61,76 @@ RSpec.describe VBADocuments::UploadProcessor, type: :job do
 
   describe '#perform' do
     let(:upload) { FactoryBot.create(:upload_submission, :status_uploaded, consumer_name: 'test consumer') }
+
+    context 'duplicates' do
+      before(:context) do
+        @transaction_state = use_transactional_tests
+        # need all subprocesses to see the state of the DB.  Transactional isolation will hurt us here.
+        self.use_transactional_tests = false
+        @upload_model = VBADocuments::UploadSubmission.new
+        @upload_model.status = 'uploaded'
+        @upload_model.save!
+      end
+
+      after(:context) do
+        self.use_transactional_tests = @transaction_state
+        @upload_model.delete
+      end
+
+      # Put in as a response to https://vajira.max.gov/browse/API-6651
+      it 'does not send duplicates if called multiple times concurrently on the same guid' do
+        allow(VBADocuments::MultipartParser).to receive(:parse) { valid_parts_attachment }
+        allow(CentralMail::Service).to receive(:new) { client_stub }
+        allow(faraday_response).to receive(:status).and_return(200)
+        allow(faraday_response).to receive(:body).and_return('')
+        allow(faraday_response).to receive(:success?).and_return(true)
+        allow(client_stub).to receive(:upload).and_return(faraday_response)
+        num_times = 7
+        # Why 7?  That's the most times a duplicate ever occurred.  See the excel spreadsheet in the ticket!
+        temp_files = []
+        num_times.times do
+          temp_files << Tempfile.new
+        end
+        pids = []
+        num_times.times do |i|
+          # Why fork instead of threads?  We are testing the advisory lock under different processes just as sidekiq
+          # will run the jobs.
+          pids << fork do
+            response = described_class.new.perform(@upload_model.guid)
+            writing = response.to_s
+            temp_files[i].write(writing)
+            temp_files[i].close
+          end
+        end
+        pids.each { |pid| Process.waitpid(pid) } # wait for my children to complete
+        responses = []
+        temp_files.each do |tf|
+          responses << File.open(tf.path, &:read)
+        end
+        expect(responses.select { |e| e.eql?('true') }.length).to eq(1)
+        expect(responses.select { |e| e.eql?('false') }.length).to eq(num_times - 1)
+      end
+    end
+
+    it 'counts concurrent duplicates that our vendor asserts occurred' do
+      upload_model = VBADocuments::UploadSubmission.new
+      upload_model.status = 'uploaded'
+      upload_model.save!
+      allow(VBADocuments::MultipartParser).to receive(:parse) { valid_parts_attachment }
+      allow(CentralMail::Service).to receive(:new) { client_stub }
+      allow(faraday_response).to receive(:status).and_return(429)
+      allow(faraday_response).to receive(:body).and_return("UUID already in cache [uuid: #{upload_model.guid}]")
+      allow(faraday_response).to receive(:success?).and_return(false)
+      allow(client_stub).to receive(:upload).and_return(faraday_response)
+      allow(File).to receive(:size).and_return(10)
+      allow_any_instance_of(File).to receive(:rewind).and_return(nil)
+      response = described_class.new.perform(upload_model.guid)
+      expect(response).to be(false)
+      described_class.new.perform(upload_model.guid)
+      described_class.new.perform(upload_model.guid)
+      upload_model.reload
+      expect(upload_model.metadata['uuid_already_in_cache_count']).to eq(3)
+    end
 
     it 'parses and uploads a valid multipart payload' do
       allow(VBADocuments::MultipartParser).to receive(:parse) { valid_parts }
@@ -134,6 +206,20 @@ RSpec.describe VBADocuments::UploadProcessor, type: :job do
       updated = VBADocuments::UploadSubmission.find_by(guid: upload.guid)
       expect(updated.status).to eq('error')
       expect(updated.code).to eq('DOC101')
+    end
+
+    %i[missing_first missing_last].each do |missing|
+      it "sets error status for #{missing} name" do
+        allow(VBADocuments::MultipartParser).to receive(:parse) {
+          { 'metadata' => send(missing), 'content' => valid_doc }
+        }
+
+        described_class.new.perform(upload.guid)
+        updated = VBADocuments::UploadSubmission.find_by(guid: upload.guid)
+        expect(updated.status).to eq('error')
+        expect(updated.code).to eq('DOC102')
+        expect(updated.detail).to match(/^Empty value given - The following values must be non-empty:/)
+      end
     end
 
     it 'sets error status for non-JSON metadata part' do

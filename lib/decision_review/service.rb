@@ -23,8 +23,7 @@ module DecisionReview
     HLR_CREATE_RESPONSE_SCHEMA = VetsJsonSchema::SCHEMAS.fetch 'HLR-CREATE-RESPONSE-200'
     HLR_SHOW_RESPONSE_SCHEMA = VetsJsonSchema::SCHEMAS.fetch 'HLR-SHOW-RESPONSE-200'
     HLR_GET_CONTESTABLE_ISSUES_RESPONSE_SCHEMA = VetsJsonSchema::SCHEMAS.fetch 'HLR-GET-CONTESTABLE-ISSUES-RESPONSE-200'
-    REQUIRED_CREATE_NOTICE_OF_DISAGREEMENT_HEADERS = %w[X-VA-Veteran-First-Name X-VA-Veteran-Last-Name
-                                                        X-VA-Veteran-SSN X-VA-Veteran-Birth-Date].freeze
+    REQUIRED_CREATE_HEADERS = %w[X-VA-First-Name X-VA-Last-Name X-VA-SSN X-VA-Birth-Date].freeze
 
     ##
     # Create a Higher-Level Review
@@ -116,37 +115,134 @@ module DecisionReview
       end
     end
 
+    ##
+    # Get Contestable Issues for a Notice of Disagreement
+    #
+    # @param user [User] Veteran who the form is in regard to
+    # @return [Faraday::Response]
+    #
+    def get_notice_of_disagreement_contestable_issues(user:)
+      with_monitoring_and_error_handling do
+        path = 'notice_of_disagreements/contestable_issues'
+        headers = get_contestable_issues_headers(user)
+        response = perform :get, path, nil, headers
+        raise_schema_error_unless_200_status response.status
+        validate_against_schema(
+          json: response.body,
+          schema: Schemas::NOD_CONTESTABLE_ISSUES_RESPONSE_200,
+          append_to_error_class: ' (NOD)'
+        )
+        response
+      end
+    end
+
+    ##
+    # Get the url to upload supporting evidence for a Notice of Disagreement
+    #
+    # @param nod_id [uuid] The uuid of the submited Notice of Disagreement
+    # @return [Faraday::Response]
+    #
+
+    def get_notice_of_disagreement_upload_url(nod_id:, ssn:)
+      with_monitoring_and_error_handling do
+        perform :post, 'notice_of_disagreements/evidence_submissions', { nod_id: nod_id },
+                { 'X-VA-SSN' => ssn.to_s.strip.presence }
+      end
+    end
+
+    ##
+    # Get the url to upload supporting evidence for a Notice of Disagreement
+    #
+    # @param upload_url [String] The url for the document to be uploaded
+    # @param file_path [String] The file path for the document to be uploaded
+    # @param metadata [Hash] additional data
+    #
+    # @return [Faraday::Response]
+    #
+
+    def put_notice_of_disagreement_upload(upload_url:, file_upload:, metadata:)
+      # After we start using Faradata >=1.0 we won't need to use tmpfiles
+      metadata_tmpfile = Tempfile.new('metadata.json')
+      metadata_tmpfile.write(metadata.to_json)
+      metadata_tmpfile.rewind
+
+      content_tmpfile = Tempfile.new(file_upload.filename)
+      content_tmpfile.write(file_upload.read)
+      content_tmpfile.rewind
+
+      params = { metadata: Faraday::UploadIO.new(metadata_tmpfile.path, Mime[:json].to_s, 'metadata.json'),
+                 content: Faraday::UploadIO.new(content_tmpfile.path, file_upload.content_type, file_upload.filename) }
+      with_monitoring_and_error_handling do
+        perform :put, upload_url, params, nil
+      end
+    ensure
+      metadata_tmpfile.close
+      metadata_tmpfile.unlink
+      content_tmpfile.close
+      content_tmpfile.unlink
+    end
+
+    ##
+    # Returns all of the data associated with a specific Notice of Disagreement Evidence Submission.
+    #
+    # @param guid [uuid] the uuid returnd from get_notice_of_disagreement_upload_url
+    #
+    # @return [Faraday::Response]
+    #
+
+    def get_notice_of_disagreement_upload(guid:)
+      with_monitoring_and_error_handling do
+        perform :get, "notice_of_disagreements/evidence_submissions/#{guid}", nil
+      end
+    end
+
+    def self.file_upload_metadata(user)
+      {
+        'veteranFirstName' => user.first_name.to_s.strip,
+        'veteranLastName' => user.last_name.to_s.strip.presence,
+        'zipCode' => user.zip,
+        'fileNumber' => user.ssn.to_s.strip,
+        'source' => 'Vets.gov',
+        'businessLine' => 'BVA'
+      }.to_json
+    end
+
     private
 
     def create_higher_level_review_headers(user)
-      unless user.ssn && user.first_name && user.last_name && user.birth_date
-        raise Common::Exceptions::Forbidden.new source: "#{self.class}##{__method__}"
-      end
-
-      {
-        'X-VA-SSN' => user.ssn.to_s,
-        'X-VA-First-Name' => user.first_name.to_s.first(12),
-        # middle_name can return either a string or an array (hence the strange chain)
-        'X-VA-Middle-Initial' => user.middle_name.presence&.first&.to_s&.first,
-        'X-VA-Last-Name' => user.last_name.to_s.first(18),
-        'X-VA-Birth-Date' => user.birth_date.to_s,
+      headers = {
+        'X-VA-SSN' => user.ssn.to_s.strip.presence,
+        'X-VA-First-Name' => user.first_name.to_s.strip.first(12),
+        'X-VA-Middle-Initial' => middle_initial(user),
+        'X-VA-Last-Name' => user.last_name.to_s.strip.first(18).presence,
+        'X-VA-Birth-Date' => user.birth_date.to_s.strip.presence,
         'X-VA-File-Number' => nil,
         'X-VA-Service-Number' => nil,
         'X-VA-Insurance-Policy-Number' => nil
       }.compact
+
+      missing_required_fields = REQUIRED_CREATE_HEADERS - headers.keys
+      if missing_required_fields.present?
+        raise Common::Exceptions::Forbidden.new(
+          source: "#{self.class}##{__method__}",
+          detail: { missing_required_fields: missing_required_fields }
+        )
+      end
+
+      headers
     end
 
     def create_notice_of_disagreement_headers(user)
       headers = {
-        'X-VA-Veteran-First-Name' => user.first_name.to_s.strip, # can be an empty string for those with 1 legal name
-        'X-VA-Veteran-Middle-Initial' => middle_initial(user),
-        'X-VA-Veteran-Last-Name' => user.last_name.to_s.strip.presence,
-        'X-VA-Veteran-SSN' => user.ssn.to_s.strip.presence,
-        'X-VA-Veteran-File-Number' => nil,
-        'X-VA-Veteran-Birth-Date' => user.birth_date.to_s.strip.presence
+        'X-VA-First-Name' => user.first_name.to_s.strip, # can be an empty string for those with 1 legal name
+        'X-VA-Middle-Initial' => middle_initial(user),
+        'X-VA-Last-Name' => user.last_name.to_s.strip.presence,
+        'X-VA-SSN' => user.ssn.to_s.strip.presence,
+        'X-VA-File-Number' => nil,
+        'X-VA-Birth-Date' => user.birth_date.to_s.strip.presence
       }.compact
 
-      missing_required_fields = REQUIRED_CREATE_NOTICE_OF_DISAGREEMENT_HEADERS - headers.keys
+      missing_required_fields = REQUIRED_CREATE_HEADERS - headers.keys
       if missing_required_fields.present?
         raise Common::Exceptions::Forbidden.new(
           source: "#{self.class}##{__method__}",
@@ -179,6 +275,10 @@ module DecisionReview
     end
 
     def save_error_details(error)
+      PersonalInformationLog.create!(
+        error_class: "#{self.class.name}#save_error_details exception #{error.class} (HLR) (NOD)",
+        data: { error: Class.new.include(FailedRequestLoggable).exception_hash(error) }
+      )
       Raven.tags_context external_service: self.class.to_s.underscore
       Raven.extra_context url: config.base_path, message: error.message
     end

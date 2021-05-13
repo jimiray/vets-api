@@ -67,12 +67,16 @@ module EducationForm
       FACILITY_IDS[region]
     end
 
+    def self.rpo_name(region:)
+      RPO_NAMES[region]
+    end
+
     def self.region_for(model)
       record = model.open_struct_form
       address = routing_address(record, form_type: model.form_type)
 
-      # special case 0993
-      return :western if model.form_type == '0993'
+      # special case 0993 and 1990s
+      return :western if model.form_type == '0993' || model.form_type == '1990s'
 
       # special case 0994
       # special case 10203
@@ -115,9 +119,7 @@ module EducationForm
 
     def self.regional_office_for(model)
       region = region_for(model)
-      address = ["#{region.to_s.capitalize} Region", 'VA Regional Office']
-      address += ADDRESSES[region]
-      address.join("\n")
+      ['VA Regional Office', ADDRESSES[region]].join("\n")
     end
   end
 end

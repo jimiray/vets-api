@@ -2,6 +2,7 @@ version: '3.4'
 services:
   postgres:
     image: mdillon/postgis:11-alpine
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-password}"
       POSTGRES_USER: "${POSTGRES_USER:-postgres}"
@@ -26,7 +27,7 @@ services:
       POSTGRES_PORT: "${POSTGRES_PORT:-5432}"
       POSTGRES_USER: "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-password}"
-      CI:
+      CI: "true"
       RAILS_ENV: test
       CC_TEST_REPORTER_ID: '0c396adc254b0317e2c3a89a1c929fd61270b133c944d3e9c0f13b3937a7ce45'
       CHANGE_ID:           "${CHANGE_ID}"

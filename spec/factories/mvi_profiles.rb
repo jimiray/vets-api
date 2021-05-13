@@ -45,6 +45,7 @@ FactoryBot.define do
     ssn { Faker::IDNumber.valid.delete('-') }
     address { build(:mvi_profile_address) }
     home_phone { Faker::PhoneNumber.phone_number }
+    person_type_code { 'Patient' }
     full_mvi_ids {
       [
         '1000123456V123456^NI^200M^USVHA^P',
@@ -68,7 +69,7 @@ FactoryBot.define do
     birls_ids { birls }
     vet360_id { '123456789' }
     sec_id { '0001234567' }
-    historical_icns { %w[1000123457V123456 1000123458V123456] }
+    historical_icns { [] }
     search_token { 'WSDOC2002071538432741110027956' }
 
     factory :mpi_profile_response do
@@ -103,6 +104,20 @@ FactoryBot.define do
       birls_id { birls.first }
       birls_ids { birls }
       vet360_id { '123456789' }
+      sec_id { '0001234567' }
+      search_token { 'WSDOC2002071538432741110027956' }
+
+      trait :with_nil_address do
+        address { nil }
+      end
+
+      trait :with_relationship do
+        relationships { [build(:mpi_profile_relationship)] }
+      end
+
+      trait :with_historical_icns do
+        historical_icns { %w[1000123457V123456 1000123458V123456] }
+      end
 
       trait :missing_attrs do
         given_names { %w[Mitchell] }

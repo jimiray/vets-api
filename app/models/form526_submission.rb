@@ -262,10 +262,7 @@ class Form526Submission < ApplicationRecord
   def workflow_complete_handler(_status, options)
     submission = Form526Submission.find(options['submission_id'])
     if submission.jobs_succeeded?
-      user = User.find(submission.user_uuid)
-      if Flipper.enabled?(:form526_confirmation_email, user)
-        submission.send_form526_confirmation_email(options['first_name'])
-      end
+      submission.send_form526_confirmation_email(options['first_name'])
       submission.workflow_complete = true
       submission.save
     end
@@ -290,7 +287,12 @@ class Form526Submission < ApplicationRecord
 
   def submit_uploads
     # Put uploads on a one minute delay because of shared workload with EVSS
-    EVSS::DisabilityCompensationForm::SubmitUploads.perform_in(60.seconds, id, form[FORM_526_UPLOADS])
+    uploads = form[FORM_526_UPLOADS]
+    delay = 60.seconds
+    uploads.each do |upload|
+      EVSS::DisabilityCompensationForm::SubmitUploads.perform_in(delay, id, [upload])
+      delay += 15.seconds
+    end
   end
 
   def upload_bdd_instructions

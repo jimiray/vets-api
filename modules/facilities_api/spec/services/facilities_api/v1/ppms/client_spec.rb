@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
-require 'facilities/ppms/v1/client'
 
 vcr_options = {
   cassette_name: 'facilities/ppms/ppms',
@@ -17,10 +16,6 @@ RSpec.describe FacilitiesApi::V1::PPMS::Client, team: :facilities, vcr: vcr_opti
       longitude: -74.057114,
       radius: 200
     }.with_indifferent_access
-  end
-
-  it 'is an PPMS::Client object' do
-    expect(described_class.new).to be_an(FacilitiesApi::V1::PPMS::Client)
   end
 
   context 'with an http timeout' do
@@ -101,31 +96,6 @@ RSpec.describe FacilitiesApi::V1::PPMS::Client, team: :facilities, vcr: vcr_opti
         pos_codes: ['20'],
         provider_identifier: '1487993564',
         provider_name: 'CITY MD URGENT CARE'
-      )
-    end
-  end
-
-  describe '#provider_info' do
-    it 'gets additional attributes for the provider' do
-      r = FacilitiesApi::V1::PPMS::Client.new.provider_info(1_154_383_230)
-      expect(r).to have_attributes(
-        acc_new_patients: 'true',
-        address_city: 'ASBURY PARK',
-        address_postal_code: nil,
-        address_state_province: 'NJ',
-        address_street: '1301 MAIN ST',
-        care_site: nil,
-        caresite_phone: nil,
-        contact_method: nil,
-        email: nil,
-        fax: nil,
-        gender: 'Female',
-        latitude: nil,
-        longitude: nil,
-        main_phone: nil,
-        miles: nil,
-        provider_identifier: '1154383230',
-        provider_name: nil
       )
     end
   end

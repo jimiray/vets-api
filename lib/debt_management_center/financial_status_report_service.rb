@@ -12,13 +12,11 @@ module DebtManagementCenter
   # Allows users to submit financial status reports, and download copies of completed reports.
   #
   class FinancialStatusReportService < DebtManagementCenter::BaseService
+    class FSRNotFoundInRedis < StandardError; end
+
     configuration DebtManagementCenter::FinancialStatusReportConfiguration
 
     STATSD_KEY_PREFIX = 'api.dmc'
-
-    def initialize(user)
-      @user = user
-    end
 
     ##
     # Submit a financial status report to the Debt Management Center
@@ -29,6 +27,8 @@ module DebtManagementCenter
     def submit_financial_status_report(form)
       with_monitoring_and_error_handling do
         form = camelize(form)
+        raise_client_error unless form.key?('personalIdentification')
+        form['personalIdentification']['fileNumber'] = @file_number
         response = DebtManagementCenter::FinancialStatusReportResponse.new(
           perform(:post, 'financial-status-report/formtopdf', form).body
         )
@@ -44,11 +44,29 @@ module DebtManagementCenter
     #
     def get_pdf
       financial_status_report = DebtManagementCenter::FinancialStatusReport.find(@user.uuid)
+
+      raise FSRNotFoundInRedis if financial_status_report.blank?
+
       downloader = DebtManagementCenter::FinancialStatusReportDownloader.new(financial_status_report)
       downloader.download_pdf
+    rescue FSRNotFoundInRedis
+      raise_user_not_found_error
     end
 
     private
+
+    def raise_client_error
+      raise Common::Client::Errors::ClientError.new(
+        'malformed request',
+        400
+      )
+    end
+
+    def raise_user_not_found_error
+      raise Common::Exceptions::RecordNotFound.new(
+        @user.uuid, detail: "Could not find the FSR for user #{@user.uuid} in the Redis Store."
+      )
+    end
 
     def update_filenet_id(filenet_id)
       fsr_params = { REDIS_CONFIG[:financial_status_report][:namespace] => @user.uuid }

@@ -10,6 +10,7 @@ module ClaimsApi
 
       swagger_path '/forms/0966' do
         operation :get do
+          key :deprecated, true
           key :summary, 'Get a 0966 schema for a form.'
           key :description, 'Returns 0966 schema to automatically generate a form.'
           key :operationId, 'get0966JsonSchema'
@@ -285,6 +286,22 @@ module ClaimsApi
             end
           end
 
+          response 404 do
+            key :description, 'Resource not found'
+            content 'application/json' do
+              schema do
+                key :type, :object
+                key :required, [:errors]
+                property :errors do
+                  key :type, :array
+                  items do
+                    key :$ref, :NotFoundModel
+                  end
+                end
+              end
+            end
+          end
+
           response 422 do
             key :description, 'Unprocessable entity'
             content 'application/json' do
@@ -305,6 +322,7 @@ module ClaimsApi
 
       swagger_path '/forms/0966/validate' do
         operation :post do
+          key :deprecated, true
           key :summary, 'Test the 0966 Intent to File form submission.'
           key :description, 'Test to ensure the form submission works with your parameters. Submission is validated against the GET /forms/0966 schema.'
           key :operationId, 'validate0966itf'

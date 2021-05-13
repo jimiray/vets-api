@@ -9,6 +9,7 @@ module ClaimsApi
 
       swagger_path '/forms/2122' do
         operation :get do
+          key :deprecated, true
           security do
             key :apikey, []
           end
@@ -561,7 +562,7 @@ module ClaimsApi
                 property :errors do
                   key :type, :array
                   items do
-                    key :$ref, :NoPOAFound
+                    key :$ref, :NotFoundModel
                   end
                 end
               end
@@ -572,6 +573,7 @@ module ClaimsApi
 
       swagger_path '/forms/2122/validate' do
         operation :post do
+          key :deprecated, true
           security do
             key :apikey, []
           end
