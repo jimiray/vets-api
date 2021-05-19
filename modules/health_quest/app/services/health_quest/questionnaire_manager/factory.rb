@@ -166,9 +166,12 @@ module HealthQuest
         appointment = lighthouse_appointment_service.get(snapshot.appointment_id)
         location = location_service.get(appointment.resource.participant.first.actor.reference.match(ID_MATCHER)[1])
         org = organization_service.get(location.resource.managingOrganization.reference.match(ID_MATCHER)[1])
-
-        HealthQuest::QuestionnaireManager::QuestionnaireResponseReport
-          .manufacture(questionnaire_response: snapshot, appointment: appointment, location: location, org: org)
+        # HealthQuest::QuestionnaireManager::QuestionnaireResponseReport
+        #   .manufacture(questionnaire_response: snapshot, appointment: appointment, location: location, org: org)
+        #   .render
+        HealthQuest::QuestionnaireManager::PdfGenerator::Composer
+          .synthesize(questionnaire_response: snapshot, appointment: appointment, location: location, org: org)
+          .document
           .render
       end
 
