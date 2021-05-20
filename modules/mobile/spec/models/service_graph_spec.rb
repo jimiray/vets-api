@@ -7,7 +7,7 @@ RSpec.describe Mobile::ServiceGraph, type: :model do
     let(:bgs_service_node) { Mobile::ServiceNode.new(name: :bgs) }
     let(:mpi_service_node) { Mobile::ServiceNode.new(name: :mpi) }
     let(:evss_service_node) { Mobile::ServiceNode.new(name: :evss) }
-    
+
     it 'adds a service node to the list' do
       subject.add_service(bgs_service_node)
       expect(subject.services[:bgs]).to eq(bgs_service_node)
@@ -23,12 +23,12 @@ RSpec.describe Mobile::ServiceGraph, type: :model do
   describe '#link_service' do
     let(:bgs_service_node) { Mobile::ServiceNode.new(name: :bgs) }
     let(:evss_service_node) { Mobile::ServiceNode.new(name: :evss) }
-    
+
     before do
       subject.add_service(bgs_service_node)
       subject.add_service(evss_service_node)
     end
-  
+
     it 'links the upstream service to the downstream service' do
       subject.link_service(:bgs, :evss)
       expect(bgs_service_node.dependent_services.first.name).to eq(:evss)
@@ -41,7 +41,7 @@ RSpec.describe Mobile::ServiceGraph, type: :model do
     let(:letters_service_node) { Mobile::ServiceNode.new(name: :letters_and_documents, part_of_api: true) }
     let(:direct_deposit_service_node) { Mobile::ServiceNode.new(name: :direct_deposit_benefits, part_of_api: true) }
     let(:claims_service_node) { Mobile::ServiceNode.new(name: :claims, part_of_api: true) }
-  
+
     before do
       subject.add_service(bgs_service_node)
       subject.add_service(evss_service_node)
@@ -54,13 +54,13 @@ RSpec.describe Mobile::ServiceGraph, type: :model do
       subject.link_service(:evss, :direct_deposit_benefits)
       subject.link_service(:evss, :claims)
     end
-  
+
     it 'finds the api services that are downstream from the queried service' do
-      expect(subject.downstream_services_from(:bgs)).to eq([:letters_and_documents, :direct_deposit_benefits, :claims])
+      expect(subject.downstream_services_from(:bgs)).to eq(%i[letters_and_documents direct_deposit_benefits claims])
     end
 
     it 'does not include non api services in the list' do
-      expect(subject.downstream_services_from(:bgs)).to_not include([:bgs, :evss])
+      expect(subject.downstream_services_from(:bgs)).not_to include(%i[bgs evss])
     end
   end
 end
