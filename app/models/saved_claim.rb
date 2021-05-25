@@ -79,7 +79,7 @@ class SavedClaim < ApplicationRecord
   end
 
   def form_must_be_string
-    errors[:form] << 'must be a json string' unless form_is_string
+    errors.add(:form, :invalid_format, message: 'must be a json string') unless form_is_string
   end
 
   def form_matches_schema
