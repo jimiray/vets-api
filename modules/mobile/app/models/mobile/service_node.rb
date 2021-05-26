@@ -2,16 +2,19 @@
 
 module Mobile
   class ServiceNode
-    attr_accessor :part_of_api, :name, :dependent_services
+    attr_accessor :name, :dependent_services
 
-    def initialize(name:, part_of_api: false)
+    def initialize(name:)
       @name = name
-      @part_of_api = part_of_api
       @dependent_services = []
     end
 
     def add_service(service)
       @dependent_services << service
+    end
+
+    def leaf?
+      @dependent_services.blank?
     end
   end
 end
