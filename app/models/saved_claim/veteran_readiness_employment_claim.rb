@@ -69,7 +69,7 @@ class SavedClaim::VeteranReadinessEmploymentClaim < SavedClaim
     '459' => 'VRC.VBAHON@va.gov',
     '460' => 'VAVBA/WIM/RO/VR&E@vba.va.gov',
     '463' => 'VRE.VBAANC@va.gov',
-    '000' => 'VRE.VBACO@va.gov'
+    '000' => 'VRE.VBAPIT@va.gov'
   }.freeze
 
   validate :veteran_information, on: :prepare_form_data
@@ -79,6 +79,13 @@ class SavedClaim::VeteranReadinessEmploymentClaim < SavedClaim
 
     updated_form = parsed_form
 
+    add_veteran_info(updated_form, user) if user&.loa3?
+    add_office_location(updated_form) if updated_form['veteranInformation'].present?
+
+    update(form: updated_form.to_json)
+  end
+
+  def add_veteran_info(updated_form, user)
     updated_form['veteranInformation'].merge!(
       {
         'VAFileNumber' => updated_form['veteranInformation']['vaFileNumber'] || veteran_va_file_number(user),
@@ -88,22 +95,29 @@ class SavedClaim::VeteranReadinessEmploymentClaim < SavedClaim
         'dob' => user.birth_date
       }
     ).except!('vaFileNumber')
+  end
 
-    update(form: updated_form.to_json)
+  def add_office_location(updated_form)
+    regional_office = check_office_location
+    @office_location = regional_office[0]
+    office_name = regional_office[1]
+
+    updated_form['veteranInformation']&.merge!({ 'regionalOffice' => "#{@office_location} - #{office_name}" })
   end
 
   def send_to_vre(user)
     prepare_form_data
-    office_location = check_office_location
-
-    email_addr = REGIONAL_OFFICE_EMAILS[office_location] || 'VRE.VBACO@va.gov'
-    VeteranReadinessEmploymentMailer.build(user, email_addr).deliver_now if user.present?
 
     upload_to_vbms
 
+    @office_location = check_office_location[0] if @office_location.nil?
+
+    email_addr = REGIONAL_OFFICE_EMAILS[@office_location] || 'VRE.VBACO@va.gov'
+    VeteranReadinessEmploymentMailer.build(user, email_addr).deliver_now if user.present?
+
     # During Roll out our partners ask that we check vet location and if within proximity to specific offices,
     # send the data to them. We always send a pdf to VBMS
-    return unless PERMITTED_OFFICE_LOCATIONS.include?(office_location)
+    return unless PERMITTED_OFFICE_LOCATIONS.include?(@office_location)
 
     service = VRE::Ch31Form.new(user: user, claim: self)
     service.submit
@@ -136,10 +150,13 @@ class SavedClaim::VeteranReadinessEmploymentClaim < SavedClaim
       vet_info['postalCode'], vet_info['country'], vet_info['state'], 'VRE', parsed_form['veteranInformation']['ssn']
     )
 
-    regional_office_response[:regional_office][:number]
+    [
+      regional_office_response[:regional_office][:number],
+      regional_office_response[:regional_office][:name]
+    ]
   rescue => e
     log_message_to_sentry(e.message, :warn, {}, { team: 'vfs-ebenefits' })
-    '000'
+    ['000', 'Not Found']
   end
 
   def bgs_client

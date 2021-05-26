@@ -2332,14 +2332,12 @@ RSpec.describe 'the API documentation', type: %i[apivore request], order: :defin
           {
             communication_item: {
               id: 2,
-              communication_channels: [
-                {
-                  id: 1,
-                  communication_permission: {
-                    allowed: true
-                  }
+              communication_channel: {
+                id: 1,
+                communication_permission: {
+                  allowed: true
                 }
-              ]
+              }
             }
           }
         end
@@ -2362,7 +2360,7 @@ RSpec.describe 'the API documentation', type: %i[apivore request], order: :defin
         end
 
         it 'supports the communication preferences create response', run_at: '2021-03-24T22:38:21Z' do
-          valid_params[:communication_item][:communication_channels][0][:communication_permission][:allowed] = false
+          valid_params[:communication_item][:communication_channel][:communication_permission][:allowed] = false
           path = '/v0/profile/communication_preferences'
           expect(subject).to validate(:post, path, 401)
 
@@ -2787,21 +2785,21 @@ RSpec.describe 'the API documentation', type: %i[apivore request], order: :defin
     describe 'search click tracking' do
       context 'when successful' do
         # rubocop:disable Layout/LineLength
-        let(:params) { { 'client_ip' => 'testIP', 'position' => 0, 'query' => 'testQuery', 'url' => 'https%3A%2F%2Fwww.testurl.com', 'user_agent' => 'testUserAgent' } }
+        let(:params) { { 'client_ip' => 'testIP', 'position' => 0, 'query' => 'testQuery', 'url' => 'https%3A%2F%2Fwww.testurl.com', 'user_agent' => 'testUserAgent', 'module_code' => 'I14Y' } }
 
         it 'sends data as query params' do
           VCR.use_cassette('search_click_tracking/success') do
-            expect(subject).to validate(:post, '/v0/search_click_tracking/?client_ip={client_ip}&position={position}&query={query}&url={url}&user_agent={user_agent}', 204, params)
+            expect(subject).to validate(:post, '/v0/search_click_tracking/?client_ip={client_ip}&position={position}&query={query}&url={url}&module_code={module_code}&user_agent={user_agent}', 204, params)
           end
         end
       end
 
       context 'with an empty search query' do
-        let(:params) { { 'client_ip' => 'testIP', 'position' => 0, 'query' => '', 'url' => 'https%3A%2F%2Fwww.testurl.com', 'user_agent' => 'testUserAgent' } }
+        let(:params) { { 'client_ip' => 'testIP', 'position' => 0, 'query' => '', 'url' => 'https%3A%2F%2Fwww.testurl.com', 'user_agent' => 'testUserAgent', 'module_code' => 'I14Y' } }
 
         it 'returns a 400 with error details' do
           VCR.use_cassette('search_click_tracking/missing_parameter') do
-            expect(subject).to validate(:post, '/v0/search_click_tracking/?client_ip={client_ip}&position={position}&query={query}&url={url}&user_agent={user_agent}', 400, params)
+            expect(subject).to validate(:post, '/v0/search_click_tracking/?client_ip={client_ip}&position={position}&query={query}&url={url}&module_code={module_code}&user_agent={user_agent}', 400, params)
           end
           # rubocop:enable Layout/LineLength
         end
@@ -3222,7 +3220,7 @@ RSpec.describe 'the API documentation', type: %i[apivore request], order: :defin
     describe 'virtual agent' do
       describe 'POST v0/virtual_agent_token' do
         it 'returns webchat token' do
-          VCR.use_cassette('virtual_agent/webchat_token') do
+          VCR.use_cassette('virtual_agent/webchat_token_a') do
             expect(subject).to validate(:post, '/v0/virtual_agent_token', 200)
           end
         end

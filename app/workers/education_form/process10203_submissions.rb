@@ -64,7 +64,9 @@ module EducationForm
         log_info "EDIPI available for process STEM claim ids=#{claim_ids}: #{auth_headers&.key?('va_eauth_dodedipnid')}"
 
         gi_bill_status = get_gi_bill_status(auth_headers)
-        poa = get_user_poa_status(auth_headers)
+
+        # only check EVSS if poa wasn't set on submit
+        poa = submissions.last.education_stem_automated_decision.poa || get_user_poa_status(auth_headers)
 
         if gi_bill_status == {} || gi_bill_status.remaining_entitlement.blank?
           submissions.each do |submission|
@@ -97,7 +99,9 @@ module EducationForm
       service = EVSS::VSOSearch::Service.new(nil, auth_headers)
       service.get_current_info(auth_headers)['userPoaInfoAvailable']
     rescue => e
-      log_exception_to_sentry(Process10203EVSSError.new("Failed to retrieve VSOSearch data: #{e.message}"))
+      log_exception_to_sentry(
+        Process10203EVSSError.new("Failed to retrieve VSOSearch data: #{e.message}")
+      )
       nil
     end
 

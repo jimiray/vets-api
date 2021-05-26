@@ -30,10 +30,13 @@ path 'modules' do
 end
 # End Modules
 
+# needed for PGHero performance dashboard
+gem 'sass-rails', '>= 6'
+
 # Anchored versions, do not change
-gem 'puma', '~> 4.3.7'
-gem 'puma-plugin-statsd', '~> 0.1.0'
-gem 'rails', '~> 6.0.2'
+gem 'puma', '~> 4.3.8'
+gem 'puma-plugin-statsd', '~> 1.2.1'
+gem 'rails', '~> 6.0.3'
 
 # Gems with special version/repo needs
 gem 'active_model_serializers', git: 'https://github.com/department-of-veterans-affairs/active_model_serializers', branch: 'master'
@@ -62,13 +65,15 @@ gem 'faraday'
 gem 'faraday_middleware'
 gem 'fast_jsonapi'
 gem 'fastimage'
-gem 'fhir_client', '~> 4.0.5'
+gem 'fhir_client', '~> 4.0.6'
 gem 'flipper', '~> 0.20.4'
 gem 'flipper-active_record', '~> 0.20.4'
 gem 'flipper-active_support_cache_store', '~> 0.20.4'
 gem 'flipper-ui', '~> 0.20.4'
 gem 'foreman'
 gem 'google-api-client'
+gem 'google-apis-core'
+gem 'google-apis-generator'
 gem 'googleauth'
 gem 'govdelivery-tms', '2.8.4', require: 'govdelivery/tms/mail/delivery_method'
 gem 'gyoku'
@@ -85,6 +90,7 @@ gem 'levenshtein-ffi'
 gem 'liquid'
 gem 'mail', '2.7.1'
 gem 'memoist'
+gem 'mimemagic', '~> 0.4.3'
 gem 'mini_magick', '~> 4.11.0'
 gem 'net-sftp'
 gem 'nokogiri', '~> 1.11'
@@ -101,6 +107,7 @@ gem 'pdf-forms'
 gem 'pdf-reader'
 gem 'pg'
 gem 'pg_query', '>= 0.9.0'
+gem 'pg_search'
 gem 'pghero'
 gem 'prawn'
 gem 'prawn-table'
@@ -130,9 +137,9 @@ gem 'utf8-cleaner'
 gem 'vets_json_schema', git: 'https://github.com/department-of-veterans-affairs/vets-json-schema', branch: 'master'
 gem 'virtus'
 gem 'will_paginate'
+gem 'with_advisory_lock'
 
 group :development do
-  gem 'benchmark-ips'
   gem 'guard-rubocop'
   gem 'seedbank'
   gem 'spring', platforms: :ruby # Spring speeds up development by keeping your application running in the background
@@ -188,6 +195,7 @@ group :development, :test do
   gem 'rspec-instrumentation-matcher'
   gem 'rspec-its'
   gem 'rspec-rails'
+  gem 'rswag'
   gem 'rubocop', require: false
   gem 'rubocop-rails'
   gem 'rubocop-rspec'

@@ -240,7 +240,7 @@ describe MPI::Service do
 
         match = { match_requests_on: %i[method uri headers body] }
         VCR.use_cassette('mpi/find_candidate/historical_icns_with_icn', match) do
-          response = subject.find_profile(user)
+          response = subject.find_profile(user, MPI::Constants::CORRELATION_WITH_ICN_HISTORY)
           expect(response.status).to eq('OK')
           expect(response.profile['historical_icns']).to eq(
             %w[1008692852V724999 1008787550V443247 1008787485V229771 1008795715V162680
@@ -254,7 +254,7 @@ describe MPI::Service do
         allow(SecureRandom).to receive(:uuid).and_return('5e819d17-ce9b-4860-929e-f9062836ebd0')
 
         VCR.use_cassette('mpi/find_candidate/historical_icns_empty', VCR::MATCH_EVERYTHING) do
-          response = subject.find_profile(user)
+          response = subject.find_profile(user, MPI::Constants::CORRELATION_WITH_ICN_HISTORY)
           expect(response.status).to eq('OK')
           expect(response.profile['historical_icns']).to eq([])
         end
@@ -308,8 +308,8 @@ describe MPI::Service do
     end
 
     context 'valid requests' do
-      it 'fetches profile when no mhv_icn exists but dslogon_edipi is present' do
-        allow(user).to receive(:dslogon_edipi).and_return('1025062341')
+      it 'fetches profile when no mhv_icn exists but edipi is present' do
+        allow(user).to receive(:edipi).and_return('1025062341')
 
         VCR.use_cassette('mpi/find_candidate/edipi_present') do
           expect(Raven).to receive(:tags_context).once.with(mvi_find_profile: 'edipi')
@@ -363,7 +363,7 @@ describe MPI::Service do
           allow(SecureRandom).to receive(:uuid).and_return('5e819d17-ce9b-4860-929e-f9062836ebd0')
 
           VCR.use_cassette('mpi/find_candidate/historical_icns_with_traits', VCR::MATCH_EVERYTHING) do
-            response = subject.find_profile(user)
+            response = subject.find_profile(user, MPI::Constants::CORRELATION_WITH_ICN_HISTORY)
             expect(response.status).to eq('OK')
             expect(response.profile['historical_icns']).to eq(
               %w[1008692852V724999 1008787550V443247 1008787485V229771 1008795715V162680
@@ -490,7 +490,7 @@ describe MPI::Service do
 
           VCR.use_cassette('mpi/find_candidate/historical_icns_user_not_found', VCR::MATCH_EVERYTHING) do
             expect(subject).not_to receive(:log_exception_to_sentry)
-            response = subject.find_profile(user)
+            response = subject.find_profile(user, MPI::Constants::CORRELATION_WITH_ICN_HISTORY)
 
             record_not_found_404_expectations_for(response)
           end
