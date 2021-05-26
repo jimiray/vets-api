@@ -181,6 +181,14 @@ module AppealsApi
       data_attributes&.dig('informalConferenceTime')
     end
 
+    def rep_phone_data
+      informal_conference_rep&.dig('phone')
+    end
+
+    def rep_email
+      informal_conference_rep&.dig('email')
+    end
+
     def soc_opt_in
       data_attributes&.dig('socOptIn')
     end
@@ -228,6 +236,10 @@ module AppealsApi
       handler.handle!
     end
 
+    def informal_conference_rep
+      data_attributes&.dig('informalConferenceRep')
+    end
+
     private
 
     def data_attributes
@@ -252,10 +264,6 @@ module AppealsApi
 
     def veteran_phone
       AppealsApi::HigherLevelReview::Phone.new veteran&.dig('phone')
-    end
-
-    def informal_conference_rep
-      data_attributes&.dig('informalConferenceRep')
     end
 
     def informal_conference_rep_name
