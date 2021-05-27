@@ -43,13 +43,13 @@
               "items": {
                 "type": "object",
                 "required": [
-                  "externalService",
+                  "service",
                   "startTime",
                   "endTime",
                   "description"
                 ],
                 "properties": {
-                  "externalService": {
+                  "service": {
                     "type": "string"
                   },
                   "startTime": {

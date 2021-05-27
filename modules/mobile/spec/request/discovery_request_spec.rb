@@ -83,37 +83,37 @@ RSpec.describe 'discovery', type: :request do
       it 'returns an array of the affected services' do
         expect(response_attributes['maintenanceWindows']).to eq([
                                                                   {
-                                                                    'externalService' => 'claims',
+                                                                    'service' => 'claims',
                                                                     'startTime' => '2021-05-25T21:33:39.000Z',
                                                                     'endTime' => '2021-05-26T01:45:00.000Z',
                                                                     'description' => 'evss is down, mpi is down'
                                                                   },
                                                                   {
-                                                                    'externalService' => 'direct_deposit_benefits',
+                                                                    'service' => 'direct_deposit_benefits',
                                                                     'startTime' => '2021-05-25T21:33:39.000Z',
                                                                     'endTime' => '2021-05-26T01:45:00.000Z',
                                                                     'description' => 'evss is down, mpi is down'
                                                                   },
                                                                   {
-                                                                    'externalService' => 'letters_and_documents',
+                                                                    'service' => 'letters_and_documents',
                                                                     'startTime' => '2021-05-25T21:33:39.000Z',
                                                                     'endTime' => '2021-05-26T01:45:00.000Z',
                                                                     'description' => 'evss is down, mpi is down'
                                                                   },
                                                                   {
-                                                                    'externalService' => 'auth_dslogon',
+                                                                    'service' => 'auth_dslogon',
                                                                     'startTime' => '2021-05-25T23:33:39.000Z',
                                                                     'endTime' => '2021-05-26T01:45:00.000Z',
                                                                     'description' => 'mpi is down'
                                                                   },
                                                                   {
-                                                                    'externalService' => 'auth_idme',
+                                                                    'service' => 'auth_idme',
                                                                     'startTime' => '2021-05-25T23:33:39.000Z',
                                                                     'endTime' => '2021-05-26T01:45:00.000Z',
                                                                     'description' => 'mpi is down'
                                                                   },
                                                                   {
-                                                                    'externalService' => 'auth_mhv',
+                                                                    'service' => 'auth_mhv',
                                                                     'startTime' => '2021-05-25T23:33:39.000Z',
                                                                     'endTime' => '2021-05-26T01:45:00.000Z',
                                                                     'description' => 'mpi is down'
