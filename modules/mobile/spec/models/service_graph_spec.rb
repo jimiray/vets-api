@@ -38,12 +38,48 @@ RSpec.describe Mobile::ServiceGraph, type: :model do
   end
 
   describe '#affected_services' do
-    it 'finds the api services (leaves) that are downstream from the queried node' do
-      expect(subject.affected_services(:bgs)).to eq(%i[claims direct_deposit_benefits letters_and_documents])
+    context 'with one window' do
+      let(:mobile_maintenance_evss) { FactoryBot.build(:mobile_maintenance_evss) }
+      let(:affected_services) { subject.affected_services([mobile_maintenance_evss]) }
+
+      it 'finds the api services (leaves) that are downstream from the queried node' do
+        expect(affected_services.keys).to eq(%i[claims direct_deposit_benefits letters_and_documents])
+      end
+
+      it 'does not include upstream services in the list' do
+        expect(affected_services.keys).not_to include(%i[bgs evss])
+      end
+
+      it 'includes downstream windows with the upstream start time' do
+        expect(affected_services[:claims].start_time).to eq(mobile_maintenance_evss.start_time)
+      end
+
+      it 'includes downstream windows with the upstream end time' do
+        expect(affected_services[:claims].end_time).to eq(mobile_maintenance_evss.end_time)
+      end
     end
 
-    it 'does not include upstream services in the list' do
-      expect(subject.affected_services(:bgs)).not_to include(%i[bgs evss])
+    context 'with two overlapping windows' do
+      let(:maintenance_evss) { FactoryBot.build(:mobile_maintenance_evss) }
+      let(:maintenance_mpi) { FactoryBot.build(:mobile_maintenance_mpi) }
+      let(:affected_services) { subject.affected_services([maintenance_evss, maintenance_mpi]) }
+
+      it 'finds the api services (leaves) that are downstream from the queried node' do
+        expect(affected_services.keys).to eq(%i[claims direct_deposit_benefits letters_and_documents auth_dslogon
+                                                auth_idme auth_mhv])
+      end
+
+      it 'does not include upstream services in the list' do
+        expect(affected_services.keys).not_to include(%i[bgs evss])
+      end
+
+      it 'includes downstream windows with the earliest upstream start time' do
+        expect(affected_services[:claims].start_time).to eq(maintenance_evss.start_time)
+      end
+
+      it 'includes downstream windows with the latest upstream end time' do
+        expect(affected_services[:claims].end_time).to eq(maintenance_mpi.end_time)
+      end
     end
   end
 end

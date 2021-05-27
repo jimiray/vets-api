@@ -31,48 +31,94 @@ RSpec.describe 'discovery', type: :request do
   end
 
   describe 'GET /discovery' do
-    before { get '/mobile/discovery' }
-
     let(:response_attributes) { response.parsed_body.dig('data', 'attributes') }
 
-    it 'has an auth_base_url' do
-      expect(response_attributes['auth_base_url']).to eq('https://sqa.fed.eauth.va.gov/oauthe/sps/oauth/oauth20/')
-    end
-
-    it 'has an auth_base_url' do
-      expect(response_attributes['api_root_url']).to eq('https://dev.va.gov/mobile')
-    end
-
-    it 'lets the app know the minimum_version supported' do
-      expect(response_attributes['minimum_version']).to eq('1.0.0')
-    end
-
-    it 'has the expected web views' do
-      expect(response_attributes['web_views']).to eq(
-        {
-          'corona_faq' => 'https://www.va.gov/coronavirus-veteran-frequently-asked-questions',
-          'facility_locator' => 'https://www.va.gov/find-locations'
-        }
-      )
-    end
-
     context 'when no maintenance windows are active' do
-      it 'returns an empty array' do
-        expect(response_attributes['maintenance_windows']).to eq([])
+      before { get '/mobile/discovery', headers: { 'X-Key-Inflection' => 'camel' } }
+
+      it 'has a auth_base_url' do
+        expect(response_attributes['authBaseUrl']).to eq('https://sqa.fed.eauth.va.gov/oauthe/sps/oauth/oauth20/')
+      end
+
+      it 'has a api_root_url' do
+        expect(response_attributes['apiRootUrl']).to eq('https://dev.va.gov/mobile')
+      end
+
+      it 'lets the app know the minimum_version supported' do
+        expect(response_attributes['minimumVersion']).to eq('1.0.0')
+      end
+
+      it 'has the expected web views' do
+        expect(response_attributes['webViews']).to eq(
+          {
+            'coronaFaq' => 'https://www.va.gov/coronavirus-veteran-frequently-asked-questions',
+            'facilityLocator' => 'https://www.va.gov/find-locations'
+          }
+        )
+      end
+
+      it 'matches the expected schema' do
+        expect(response.body).to match_json_schema('discovery')
+      end
+
+      it 'returns an empty array of affected services' do
+        expect(response_attributes['maintenanceWindows']).to eq([])
       end
     end
 
     context 'when a maintenance with many dependent services is active' do
       before do
         Timecop.freeze('2021-05-25T23:33:39Z')
-        FactoryBot.create(:mobile_maintenance_window)
+        FactoryBot.create(:mobile_maintenance_evss)
+        FactoryBot.create(:mobile_maintenance_mpi)
+        get '/mobile/discovery', headers: { 'X-Key-Inflection' => 'camel' }
       end
 
       after { Timecop.return }
 
-      it 'returns an array of those services' do
-        get '/mobile/discovery'
-        expect(response_attributes['maintenance_windows']).to eq([])
+      it 'matches the expected schema' do
+        expect(response.body).to match_json_schema('discovery')
+      end
+
+      it 'returns an array of the affected services' do
+        expect(response_attributes['maintenanceWindows']).to eq([
+                                                                  {
+                                                                    'externalService' => 'claims',
+                                                                    'startTime' => '2021-05-25T21:33:39.000Z',
+                                                                    'endTime' => '2021-05-26T01:45:00.000Z',
+                                                                    'description' => 'evss is down, mpi is down'
+                                                                  },
+                                                                  {
+                                                                    'externalService' => 'direct_deposit_benefits',
+                                                                    'startTime' => '2021-05-25T21:33:39.000Z',
+                                                                    'endTime' => '2021-05-26T01:45:00.000Z',
+                                                                    'description' => 'evss is down, mpi is down'
+                                                                  },
+                                                                  {
+                                                                    'externalService' => 'letters_and_documents',
+                                                                    'startTime' => '2021-05-25T21:33:39.000Z',
+                                                                    'endTime' => '2021-05-26T01:45:00.000Z',
+                                                                    'description' => 'evss is down, mpi is down'
+                                                                  },
+                                                                  {
+                                                                    'externalService' => 'auth_dslogon',
+                                                                    'startTime' => '2021-05-25T23:33:39.000Z',
+                                                                    'endTime' => '2021-05-26T01:45:00.000Z',
+                                                                    'description' => 'mpi is down'
+                                                                  },
+                                                                  {
+                                                                    'externalService' => 'auth_idme',
+                                                                    'startTime' => '2021-05-25T23:33:39.000Z',
+                                                                    'endTime' => '2021-05-26T01:45:00.000Z',
+                                                                    'description' => 'mpi is down'
+                                                                  },
+                                                                  {
+                                                                    'externalService' => 'auth_mhv',
+                                                                    'startTime' => '2021-05-25T23:33:39.000Z',
+                                                                    'endTime' => '2021-05-26T01:45:00.000Z',
+                                                                    'description' => 'mpi is down'
+                                                                  }
+                                                                ])
       end
     end
   end

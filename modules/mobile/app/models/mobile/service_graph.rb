@@ -20,16 +20,23 @@ module Mobile
       @services[name]
     end
 
-    def affected_services(name)
-      queue = []
-      queue.push(@services[name])
-      downstream_services = []
+    def affected_services(windows)
+      downstream_services = {}
 
-      while queue.size != 0
-        s = queue.shift
-        downstream_services.push(s.name) if s && s.name != name && s.leaf?
-        s.dependent_services.each do |ds|
-          queue.push(ds)
+      windows.each do |window|
+        name = window.external_service.to_sym
+        queue = []
+        queue.push(@services[name])
+
+        while queue.size != 0
+          s = queue.shift
+          if s && s.name != name && s.leaf?
+            downstream_services[s.name] =
+              create_or_update_window(downstream_services[s.name], s.name, window)
+          end
+          s.dependent_services.each do |ds|
+            queue.push(ds)
+          end
         end
       end
 
@@ -43,6 +50,25 @@ module Mobile
       raise "could not find downstream service '#{downstream_name}'" unless @services[downstream_name]
 
       @services[upstream_name].add_service(@services[downstream_name])
+    end
+
+    def create_or_update_window(service, downstream_name, window)
+      if service
+        start_time = [service.start_time, window.start_time].min
+        end_time = [service.end_time, window.end_time].max
+        description = service.description + ", #{window.description}"
+      else
+        start_time = window.start_time
+        end_time = window.end_time
+        description = window.description
+      end
+
+      Mobile::MaintenanceWindow.new(
+        external_service: downstream_name,
+        start_time: start_time,
+        end_time: end_time,
+        description: description
+      )
     end
   end
 end
