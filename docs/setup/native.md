@@ -110,7 +110,7 @@ All of the OSX instructions assume `homebrew` is your [package manager](https://
    - Download the Postgres.app with PostgreSQL 10, 11 and 12
    - Install Instructions here: https://postgresapp.com/
    - `sudo mkdir -p /etc/paths.d && echo /Applications/Postgres.app/Contents/Versions/latest/bin | sudo tee /etc/paths.d/postgresapp`
-   - `sudo ARCHFLAGS="-arch x86_64" gem install pg -v 1.2.3`
+   - `ARCHFLAGS="-arch x86_64" gem install pg -v 1.2.3`
    1. Alternatively Postgresql 11 & PostGIS 2.5 can be installed with homebrew
       - `brew install postgresql@11`
       - `brew services start postgresql@11`
