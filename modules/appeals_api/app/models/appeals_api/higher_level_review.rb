@@ -21,21 +21,11 @@ module AppealsApi
     attr_encrypted(:form_data, key: Settings.db_encryption_key, marshal: true, marshaler: JsonMarshal::Marshaller)
     attr_encrypted(:auth_headers, key: Settings.db_encryption_key, marshal: true, marshaler: JsonMarshal::Marshaller)
 
-    INFORMAL_CONFERENCE_REP_NAME_AND_PHONE_NUMBER_MAX_LENGTH = 100
     NO_ADDRESS_PROVIDED_SENTENCE = 'USE ADDRESS ON FILE'
     NO_EMAIL_PROVIDED_SENTENCE = 'USE EMAIL ON FILE'
     NO_PHONE_PROVIDED_SENTENCE = 'USE PHONE ON FILE'
 
-    # the controller applies the JSON Schemas in modules/appeals_api/config/schemas/
-    # further validations:
-    validate(
-      :veteran_phone_is_not_too_long,
-      :informal_conference_rep_name_and_phone_number_is_not_too_long,
-      :birth_date_is_a_date,
-      :birth_date_is_in_the_past,
-      :contestable_issue_dates_are_valid_dates,
-      if: proc { |a| a.form_data.present? }
-    )
+    validate :custom_validation, if: proc { |a| a.form_data.present? }
 
     has_many :evidence_submissions, as: :supportable, dependent: :destroy
     has_many :status_updates, as: :statusable, dependent: :destroy
@@ -253,75 +243,8 @@ module AppealsApi
       auth_headers.dig('X-VA-Birth-Date')
     end
 
-    # validation
-    def veteran_phone_is_not_too_long
-      add_error(veteran_phone.too_long_error_message) if veteran_phone.too_long?
-    end
-
-    # validation
-    def informal_conference_rep_name_and_phone_number_is_not_too_long
-      return unless informal_conference_rep_name_and_phone_number_is_too_long?
-
-      add_error_informal_conference_rep_will_not_fit_on_form
-    end
-
-    def informal_conference_rep_name_and_phone_number_is_too_long?
-      informal_conference_rep_name_and_phone_number.length >
-        INFORMAL_CONFERENCE_REP_NAME_AND_PHONE_NUMBER_MAX_LENGTH
-    end
-
-    def add_error_informal_conference_rep_will_not_fit_on_form
-      add_error [
-        'Informal conference rep will not fit on form',
-        "(#{INFORMAL_CONFERENCE_REP_NAME_AND_PHONE_NUMBER_MAX_LENGTH} char limit):",
-        informal_conference_rep_name_and_phone_number
-      ].join(' ')
-    end
-
-    # validation (header)
-    def birth_date_is_a_date
-      add_error("Veteran birth date isn't a date: #{birth_date_string.inspect}") unless birth_date
-    end
-
-    # validation (header)
-    def birth_date_is_in_the_past
-      return unless birth_date
-
-      add_error("Veteran birth date isn't in the past: #{birth_date}") unless self.class.past? birth_date
-    end
-
-    # validation
-    def contestable_issue_dates_are_valid_dates
-      return unless contestable_issues
-
-      contestable_issues.each_with_index do |ci, index|
-        decision_date_is_valid(ci&.dig('attributes', 'decisionDate').to_s, index)
-      end
-    end
-
-    def decision_date_is_valid(string, issue_index)
-      date = self.class.date_from_string(string)
-      unless date
-        add_error_decision_date_string_could_not_be_parsed(string, issue_index)
-        return
-      end
-      add_error_decision_date_is_not_in_the_past(date, issue_index) unless self.class.past? date
-    end
-
-    def add_error_decision_date_string_could_not_be_parsed(decision_date_string, issue_index)
-      add_decision_date_error "isn't a valid date: #{decision_date_string.inspect}", issue_index
-    end
-
-    def add_error_decision_date_is_not_in_the_past(decision_date, issue_index)
-      add_decision_date_error "isn't in the past: #{decision_date}", issue_index
-    end
-
-    def add_decision_date_error(string, issue_index)
-      add_error "included[#{issue_index}].attributes.decisionDate #{string}"
-    end
-
-    def add_error(message)
-      errors.add(:base, message)
+    def custom_validation
+      HlrModelValidations.new(self).call
     end
   end
 end
