@@ -6,6 +6,7 @@ require 'common/exceptions'
 module AppealsApi
   class HigherLevelReview < ApplicationRecord
     include HlrStatus
+    include HlrFieldsFormattable
 
     def self.past?(date)
       date < Time.zone.today
@@ -252,30 +253,6 @@ module AppealsApi
       auth_headers.dig('X-VA-Birth-Date')
     end
 
-    def birth_date
-      self.class.date_from_string birth_date_string
-    end
-
-    def veteran_phone
-      AppealsApi::HigherLevelReview::Phone.new veteran&.dig('phone')
-    end
-
-    def informal_conference_rep_name
-      informal_conference_rep&.dig('name')
-    end
-
-    def informal_conference_rep_phone
-      AppealsApi::HigherLevelReview::Phone.new informal_conference_rep&.dig('phone')
-    end
-
-    def veterans_local_time
-      veterans_timezone ? Time.now.in_time_zone(veterans_timezone) : Time.now.utc
-    end
-
-    def veterans_timezone
-      veteran&.dig('timezone').presence&.strip
-    end
-
     # validation
     def veteran_phone_is_not_too_long
       add_error(veteran_phone.too_long_error_message) if veteran_phone.too_long?
@@ -345,15 +322,6 @@ module AppealsApi
 
     def add_error(message)
       errors.add(:base, message)
-    end
-
-    def address_combined
-      return unless veteran.dig('address', 'addressLine1')
-
-      @address_combined ||=
-        [veteran.dig('address', 'addressLine1'),
-         veteran.dig('address', 'addressLine2'),
-         veteran.dig('address', 'addressLine3')].compact.map(&:strip).join(' ')
     end
   end
 end
